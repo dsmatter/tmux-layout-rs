@@ -1,0 +1,11 @@
+[[windows]]
+name = "tmux-layout"
+#left.top = {}
+#right.top = {}
+
+#left.left.width = "75%"
+#left.left.right.width = "75%"
+#right.right.width = "10%"
+#right.left.right.width = "90%"
+#right.left.right.bottom.height = "90%"
+#right.left.left.top.height = "90%"

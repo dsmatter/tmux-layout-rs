@@ -1,0 +1,8 @@
+[[windows]]
+name = "A new window"
+cwd = "/tmp"
+
+left.cwd = "~"
+left.shell_command = "bash"
+right.cwd = "~/Downloads"
+

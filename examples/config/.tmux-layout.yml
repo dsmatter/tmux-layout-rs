@@ -1,0 +1,28 @@
+sessions:
+  - name: sess1
+    active: true
+    cwd: "~"
+    windows:
+      - name: win1
+        active: true
+        cwd: code
+        left:
+          top:
+            cwd: "projects"
+          bottom:
+            cwd: "scratch"
+        right:
+          width: "66%"
+          bottom:
+            cwd: "projects/tmux-layout"
+      - name: win2
+        cwd: ".zsh"
+        left:
+          cwd: "$JAVA_HOME"
+  - name: sess2
+    windows:
+      - left:
+          width: 20%
+          insert_keys: ["ls -al", "ENTER"]
+        right:
+          shell_command: "bash"

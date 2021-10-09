@@ -1,0 +1,29 @@
+[package]
+name = "tmux-layout"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.5"
+serde_yaml = "0.8"
+shellexpand = "2.1"
+clap = "2.33"
+colored = "2.0"
+nom = "7.0"
+shellwords = "1.1"
+color-eyre = { version = "0.5", default-features = false }
+thiserror = "1.0"
+dirs = "5.0.1"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "config_parse"
+harness = false
+
+[profile.release]
+#debug = true

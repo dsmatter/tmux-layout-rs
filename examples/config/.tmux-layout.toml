@@ -1,0 +1,28 @@
+[[sessions]]
+name = "sess1"
+cwd = "~"
+active = true
+
+[[sessions.windows]]
+name = "win1"
+cwd = "code"
+active = true
+
+left.top.cwd = "projects"
+left.bottom.cwd = "scratch"
+right.bottom.cwd = "projects/tmux-layout"
+right.bottom.insert_keys = ["g", "ENTER"]
+
+[[sessions.windows]]
+name = "win2"
+cwd = ".zsh"
+
+left.cwd = "$JAVA_HOME"
+left.width = "33%"
+
+[[sessions]]
+name = "sess2"
+
+[[sessions.windows]]
+left = { insert_keys = ["ls -al", "ENTER"] }
+right = { width = "120", shell_command = "bash" }
