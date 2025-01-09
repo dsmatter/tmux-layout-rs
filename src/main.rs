@@ -155,10 +155,16 @@ fn load_stdin_config() -> Config {
 
     // Guess format
     let partial_config: PartialConfig = if config_bytes.starts_with(b"[[") {
-        toml::from_slice(&config_bytes).unwrap_or_else(|err| exit_with_parse_error(&err, "(STDIN)"))
+        let config_str = std::str::from_utf8(&config_bytes)
+            .unwrap_or_else(|err| exit_with_parse_error(&err, "(STDIN)"));
+
+        toml::from_str(config_str).unwrap_or_else(|err| exit_with_parse_error(&err, "(STDIN)"))
     } else {
+        let config_str = std::str::from_utf8(&config_bytes)
+            .unwrap_or_else(|err| exit_with_parse_error(&err, "(STDIN)"));
+
         serde_yaml::from_slice(&config_bytes)
-            .or_else(|_| toml::from_slice(&config_bytes))
+            .or_else(|_| toml::from_str(config_str))
             .unwrap_or_else(|err| exit_with_parse_error(&err, "(STDIN)"))
     };
 

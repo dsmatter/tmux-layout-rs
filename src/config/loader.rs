@@ -52,10 +52,18 @@ pub fn load_partial_config_at(path: &Path) -> Result<PartialConfig, Error> {
     })?;
 
     match path.extension().map(|s| s.as_bytes()) {
-        Some(b"toml") => toml::from_slice(&config_bytes).map_err(|err| Error::ParseError {
-            path: path.to_owned(),
-            message: format!("{}", err),
-        }),
+        Some(b"toml") => {
+            let config_str =
+                std::str::from_utf8(&config_bytes).map_err(|err| Error::ParseError {
+                    path: path.to_owned(),
+                    message: format!("UTF-8 error: {}", err),
+                })?;
+
+            toml::from_str(config_str).map_err(|err| Error::ParseError {
+                path: path.to_owned(),
+                message: format!("{}", err),
+            })
+        }
         Some(b"yml") | Some(b"yaml") => {
             serde_yaml::from_slice(&config_bytes).map_err(|err| Error::ParseError {
                 path: path.to_owned(),
