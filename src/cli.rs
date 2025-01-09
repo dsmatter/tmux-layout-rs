@@ -11,19 +11,19 @@ pub enum Command<'a> {
 }
 
 impl Command<'_> {
-    pub fn from_matches<'a>(matches: &'a ArgMatches<'a>) -> Option<Command<'a>> {
+    pub fn from_matches(matches: &ArgMatches) -> Option<Command<'_>> {
         match matches.subcommand() {
-            ("", _) => None,
-            ("create", Some(sub_matches)) => {
+            None => None,
+            Some(("create", sub_matches)) => {
                 Some(Command::Create(CreateOpts::from_matches(sub_matches)))
             }
-            ("dump-command", Some(sub_matches)) => Some(Command::DumpCommand(
+            Some(("dump-command", sub_matches)) => Some(Command::DumpCommand(
                 DumpCommandOps::from_matches(sub_matches),
             )),
-            ("dump-config", Some(sub_matches)) => Some(Command::DumpConfig(
+            Some(("dump-config", sub_matches)) => Some(Command::DumpConfig(
                 DumpConfigOps::from_matches(sub_matches),
             )),
-            ("export", Some(sub_matches)) => {
+            Some(("export", sub_matches)) => {
                 Some(Command::Export(ExportOpts::from_matches(sub_matches)))
             }
             _ => unreachable!("undefined subcommand"),
@@ -40,7 +40,7 @@ pub struct CreateOpts<'a> {
 }
 
 impl CreateOpts<'_> {
-    fn from_matches<'a>(matches: &'a ArgMatches<'a>) -> CreateOpts<'a> {
+    fn from_matches(matches: &ArgMatches) -> CreateOpts<'_> {
         CreateOpts {
             config_path: matches.value_of("config"),
             session_select_mode: SessionSelectModeOption::from_arg(
@@ -64,7 +64,7 @@ pub struct ExportOpts<'a> {
 }
 
 impl ExportOpts<'_> {
-    fn from_matches<'a>(matches: &'a ArgMatches<'a>) -> ExportOpts<'a> {
+    fn from_matches(matches: &ArgMatches) -> ExportOpts<'_> {
         ExportOpts {
             scope: QueryScope::from_arg(matches.value_of("scope")),
             format: ConfigFormat::from_arg(matches.value_of("format")),
@@ -86,7 +86,7 @@ pub struct DumpCommandOps<'a> {
 }
 
 impl DumpCommandOps<'_> {
-    fn from_matches<'a>(matches: &'a ArgMatches<'a>) -> DumpCommandOps<'a> {
+    fn from_matches(matches: &ArgMatches) -> DumpCommandOps<'_> {
         DumpCommandOps {
             config_path: matches.value_of("config"),
             session_select_mode: SessionSelectModeOption::from_arg(
@@ -109,7 +109,7 @@ pub struct DumpConfigOps<'a> {
 }
 
 impl DumpConfigOps<'_> {
-    fn from_matches<'a>(matches: &'a ArgMatches<'a>) -> DumpConfigOps<'a> {
+    fn from_matches(matches: &ArgMatches) -> DumpConfigOps<'_> {
         DumpConfigOps {
             config_path: matches.value_of("config"),
             format: ConfigFormat::from_arg(matches.value_of("format")),
@@ -165,7 +165,7 @@ impl SessionSelectModeOption {
     }
 }
 
-pub fn app() -> App<'static, 'static> {
+pub fn app() -> App<'static> {
     let config_arg = Arg::with_name("config")
         .help(
             "Config file path. If not given the config file is searched for at:\n\
@@ -173,7 +173,7 @@ pub fn app() -> App<'static, 'static> {
               - ~/tmux-layout.{yaml,yml,toml}\n",
         )
         .required(false)
-        .short("c")
+        .short('c')
         .long("config")
         .takes_value(true)
         .value_name("FILE")
@@ -182,11 +182,11 @@ pub fn app() -> App<'static, 'static> {
     let format_arg = Arg::with_name("format")
         .help("Export config format")
         .required(false)
-        .short("f")
+        .short('f')
         .long("format")
         .takes_value(true)
         .value_name("FORMAT")
-        .possible_values(&["yaml", "toml"])
+        .possible_values(["yaml", "toml"])
         .default_value("yaml");
 
     let session_select_mode_arg = Arg::with_name("session-select-mode")
@@ -199,17 +199,17 @@ pub fn app() -> App<'static, 'static> {
                   attach when running from a TTY, \
                   detached otherwise\n",
         )
-        .short("m")
+        .short('m')
         .long("session-select-mode")
         .takes_value(true)
         .value_name("MODE")
-        .possible_values(&["auto", "attach", "switch", "detached"])
+        .possible_values(["auto", "attach", "switch", "detached"])
         .default_value("auto")
         .required(false);
 
     let ignore_existing_sessions_arg = Arg::with_name("ignore-existing-sessions")
         .help("Don't create already existing tmux sessions")
-        .short("i")
+        .short('i')
         .long("ignore-existing-sessions")
         .required(false);
 
@@ -251,11 +251,11 @@ pub fn app() -> App<'static, 'static> {
                     Arg::with_name("scope")
                         .help("Export scope")
                         .required(false)
-                        .short("s")
+                        .short('s')
                         .long("scope")
                         .takes_value(true)
                         .value_name("SCOPE")
-                        .possible_values(&["all", "session", "window"])
+                        .possible_values(["all", "session", "window"])
                         .default_value("all"),
                 )
                 .arg(&format_arg)

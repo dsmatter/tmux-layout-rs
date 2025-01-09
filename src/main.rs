@@ -20,7 +20,7 @@ use tmux_layout::{exit_with_error, show_info, show_warning};
 fn main() {
     let matches = cli::app().get_matches();
     let Some(command) = cli::Command::from_matches(&matches) else {
-        eprintln!("{}\n", matches.usage());
+        eprintln!("{}\n", cli::app().render_usage());
         exit_with_error("no subcommand given");
     };
     match command {
