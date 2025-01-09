@@ -199,9 +199,7 @@ fn get_session_select_mode(
     env: &EnvOpts,
     allow_overwrite: bool,
 ) -> SessionSelectMode {
-    let is_terminal = std::io::stdin().is_terminal()
-        && std::io::stdout().is_terminal()
-        && std::io::stderr().is_terminal();
+    let is_terminal = std::io::stdin().is_terminal();
 
     match opt {
         SessionSelectModeOption::Switch => SessionSelectMode::Switch,
@@ -213,7 +211,7 @@ fn get_session_select_mode(
                 show_warning(
                     "Ignoring 'attach' mode because we are not running from a TTY. \
                     Note that 'attach' mode is not available if the config is provided via \
-                    STDIN or STDOUT/STDERR are redirected.",
+                    STDIN.",
                 );
                 SessionSelectMode::Detached
             }
