@@ -1,4 +1,4 @@
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 
 use crate::tmux::QueryScope;
 
@@ -48,7 +48,7 @@ impl CreateOpts<'_> {
                     .get_one::<String>("session-select-mode")
                     .map(|s| s.as_str()),
             ),
-            ignore_existing_sessions: matches.contains_id("ignore-existing-sessions"),
+            ignore_existing_sessions: matches.get_flag("ignore-existing-sessions"),
             tmux_args: matches
                 .get_many::<String>("tmux args")
                 .into_iter()
@@ -98,7 +98,7 @@ impl DumpCommandOps<'_> {
                     .get_one::<String>("session-select-mode")
                     .map(|s| s.as_str()),
             ),
-            ignore_existing_sessions: matches.contains_id("ignore-existing-sessions"),
+            ignore_existing_sessions: matches.get_flag("ignore-existing-sessions"),
             tmux_args: matches
                 .get_many::<String>("tmux args")
                 .into_iter()
@@ -172,7 +172,7 @@ impl SessionSelectModeOption {
     }
 }
 
-pub fn app() -> Command<'static> {
+pub fn app() -> Command {
     let config_arg = Arg::new("config")
         .help(
             "Config file path. If not given the config file is searched for at:\n\
@@ -182,7 +182,7 @@ pub fn app() -> Command<'static> {
         .required(false)
         .short('c')
         .long("config")
-        .takes_value(true)
+        .num_args(1)
         .value_name("FILE")
         .required(false);
 
@@ -191,7 +191,7 @@ pub fn app() -> Command<'static> {
         .required(false)
         .short('f')
         .long("format")
-        .takes_value(true)
+        .num_args(1)
         .value_name("FORMAT")
         .value_parser(["yaml", "toml"])
         .default_value("yaml");
@@ -208,7 +208,7 @@ pub fn app() -> Command<'static> {
         )
         .short('m')
         .long("session-select-mode")
-        .takes_value(true)
+        .num_args(1)
         .value_name("MODE")
         .value_parser(["auto", "attach", "switch", "detached"])
         .default_value("auto")
@@ -218,12 +218,13 @@ pub fn app() -> Command<'static> {
         .help("Don't create already existing tmux sessions")
         .short('i')
         .long("ignore-existing-sessions")
+        .action(ArgAction::SetTrue)
         .required(false);
 
     let tmux_args = Arg::new("tmux args")
         .required(false)
         .last(true)
-        .multiple_values(true);
+        .num_args(0..);
 
     Command::new("tmux-layout")
         .version("0.1.0")
@@ -260,7 +261,7 @@ pub fn app() -> Command<'static> {
                         .required(false)
                         .short('s')
                         .long("scope")
-                        .takes_value(true)
+                        .num_args(1)
                         .value_name("SCOPE")
                         .value_parser(["all", "session", "window"])
                         .default_value("all"),
