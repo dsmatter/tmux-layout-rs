@@ -19,15 +19,15 @@ use tmux_layout::{exit_with_error, show_info, show_warning};
 
 fn main() {
     let matches = cli::app().get_matches();
-    let Some(command) = cli::Command::from_matches(&matches) else {
+    let Some(command) = cli::Subcommand::from_matches(&matches) else {
         eprintln!("{}\n", cli::app().render_usage());
         exit_with_error("no subcommand given");
     };
     match command {
-        cli::Command::Create(opts) => run_create(opts),
-        cli::Command::Export(opts) => run_export(opts),
-        cli::Command::DumpCommand(opts) => run_dump_command(opts),
-        cli::Command::DumpConfig(opts) => run_dump_config(opts),
+        cli::Subcommand::Create(opts) => run_create(opts),
+        cli::Subcommand::Export(opts) => run_export(opts),
+        cli::Subcommand::DumpCommand(opts) => run_dump_command(opts),
+        cli::Subcommand::DumpConfig(opts) => run_dump_config(opts),
     }
 }
 
