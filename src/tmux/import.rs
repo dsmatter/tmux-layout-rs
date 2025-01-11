@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path, process::Stdio};
 use thiserror::Error;
 
 use crate::{
-    config,
+    config::{self},
     cwd::Cwd,
     tmux::{self, TmuxCommandBuilder},
 };
@@ -90,15 +90,16 @@ impl Window {
         let mut panes = self.panes.into_values().collect::<Vec<_>>();
         panes.sort_by_key(|p| p.index);
 
-        let mut root_split = config::Split::from(self.layout);
+        let mut root_split = config::Split::from(self.layout).into_root();
         root_split
-            .pane_iter()
+            .pane_iter_mut()
             .zip(panes)
             .for_each(|(config_pane, pane)| {
+                config_pane.active = pane.active;
                 config_pane.cwd = session_cwd_path
                     .and_then(|root| Path::new(&pane.cwd).strip_prefix(root).ok())
                     .map(|p| p.to_owned().into())
-                    .unwrap_or_else(|| pane.cwd.into())
+                    .unwrap_or_else(|| pane.cwd.into());
             });
 
         config::Window {
@@ -120,6 +121,7 @@ impl From<Window> for config::Window {
 pub struct Pane {
     pub id: PaneId,
     pub index: PaneIndex,
+    pub active: bool,
     pub cwd: String,
 }
 
@@ -192,6 +194,7 @@ mod parser {
                 Pane {
                     id: info.pane_id,
                     index: info.pane_index,
+                    active: info.pane_active,
                     cwd: info.pane_cwd,
                 },
             );
@@ -212,6 +215,7 @@ mod parser {
         window_active: bool,
         window_layout: tmux::Layout,
         pane_index: PaneIndex,
+        pane_active: bool,
         pane_cwd: String,
     }
 
@@ -221,7 +225,8 @@ mod parser {
 
     pub(super) const TMUX_FORMAT: &str = "#{q:session_id} #{q:window_id} #{q:pane_id} \
         #{q:session_name} #{q:session_path} #{q:window_index} #{q:window_name} \
-        #{q:window_active} #{q:window_layout} #{q:pane_index} #{q:pane_current_path}";
+        #{q:window_active} #{q:window_layout} #{q:pane_index} #{q:pane_active} \
+        #{q:pane_current_path}";
 
     fn parse_line(line: &str) -> Result<PaneInfo> {
         let mut words = shellwords::split(line)?.into_iter();
@@ -241,6 +246,7 @@ mod parser {
         let window_layout_desc = next_word()?;
         let window_layout = tmux::Layout::parse(&window_layout_desc)?;
         let pane_index = PaneIndex(next_word()?.parse()?);
+        let pane_active = next_word()?.parse::<u8>()? != 0;
         let pane_cwd = next_word().unwrap_or_default();
 
         Ok(PaneInfo {
@@ -254,6 +260,7 @@ mod parser {
             window_active,
             window_layout,
             pane_index,
+            pane_active,
             pane_cwd,
         })
     }

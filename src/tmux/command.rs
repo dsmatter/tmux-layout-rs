@@ -1,4 +1,4 @@
-use crate::config::{Pane, Session, Split, Window};
+use crate::config::{Pane, RootSplit, Session, Split, Window};
 use crate::cwd::Cwd;
 use crate::show_warning;
 use std::fmt;
@@ -141,6 +141,7 @@ impl TmuxCommandBuilder {
         }
 
         self.apply_root_split(&window.root_split, &window_cwd);
+        self.select_active_pane(window);
         self
     }
 
@@ -158,7 +159,35 @@ impl TmuxCommandBuilder {
         self
     }
 
-    fn apply_root_split(&mut self, split: &Split, parent_cwd: &Cwd) -> &mut Self {
+    fn select_active_pane(&mut self, window: &Window) {
+        let active_panes = window
+            .root_split
+            .pane_iter()
+            .enumerate()
+            .filter(|(_, pane)| pane.active)
+            .collect::<Vec<_>>();
+
+        if active_panes.len() > 1 {
+            let session_name = self.current_session_name.as_deref().unwrap_or("(current)");
+            show_warning(&format!(
+                "Multiple active panes in window '{}' of session '{}'",
+                window.name.as_deref().unwrap_or("(unnamed)"),
+                session_name
+            ));
+        }
+
+        if let Some(active_pane) = active_panes.first() {
+            let pane_index = active_pane.0;
+            let target = self
+                .session_target()
+                .current_window()
+                .pane(pane_index.to_string());
+
+            self.push_new_command("select-pane").push_target_arg(target);
+        }
+    }
+
+    fn apply_root_split(&mut self, split: &RootSplit, parent_cwd: &Cwd) -> &mut Self {
         // We now have a fresh window with a single, unconfigured pane.
         // To apply our options to the pane, we created a horizontal split
         // with our designated first pane on the right. Afterwards we kill

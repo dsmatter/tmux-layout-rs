@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use super::includes::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -51,7 +53,7 @@ pub struct Window {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub active: bool,
     #[serde(flatten)]
-    pub root_split: Split,
+    pub root_split: RootSplit,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,14 +65,50 @@ pub enum Split {
 }
 
 impl Split {
-    pub fn pane_iter(&mut self) -> Panes {
+    pub fn into_root(self) -> RootSplit {
+        RootSplit(self)
+    }
+
+    pub fn pane_iter(&self) -> Panes {
         Panes::new(self)
+    }
+
+    pub fn pane_iter_mut(&mut self) -> PanesMut {
+        PanesMut::new(self)
     }
 }
 
 impl Default for Split {
     fn default() -> Self {
         Split::Pane(Pane::default())
+    }
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "serialization::SplitMap", into = "serialization::SplitMap")]
+#[repr(transparent)]
+pub struct RootSplit(Split);
+
+impl RootSplit {
+    pub fn single_pane(&mut self) -> Option<&mut Pane> {
+        match &mut self.0 {
+            Split::Pane(pane) => Some(pane),
+            _ => None,
+        }
+    }
+}
+
+impl Deref for RootSplit {
+    type Target = Split;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for RootSplit {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -93,6 +131,8 @@ pub struct VSplitPart {
 pub struct Pane {
     #[serde(skip_serializing_if = "Cwd::is_empty")]
     pub cwd: Cwd,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub active: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shell_command: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -101,16 +141,48 @@ pub struct Pane {
 
 /// Iterates panes in tmux index order.
 pub struct Panes<'a> {
-    stack: Vec<&'a mut Split>,
+    stack: Vec<&'a Split>,
 }
 
 impl<'a> Panes<'a> {
-    pub fn new(root: &'a mut Split) -> Self {
+    pub fn new(root: &'a Split) -> Self {
         Self { stack: vec![root] }
     }
 }
 
 impl<'a> Iterator for Panes<'a> {
+    type Item = &'a Pane;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let split = self.stack.pop()?;
+        match split {
+            Split::Pane(pane) => Some(pane),
+            Split::H { left, right } => {
+                self.stack.push(&right.split);
+                self.stack.push(&left.split);
+                self.next()
+            }
+            Split::V { top, bottom } => {
+                self.stack.push(&bottom.split);
+                self.stack.push(&top.split);
+                self.next()
+            }
+        }
+    }
+}
+
+/// Iterates panes in tmux index order (mutable).
+pub struct PanesMut<'a> {
+    stack: Vec<&'a mut Split>,
+}
+
+impl<'a> PanesMut<'a> {
+    pub fn new(root: &'a mut Split) -> Self {
+        Self { stack: vec![root] }
+    }
+}
+
+impl<'a> Iterator for PanesMut<'a> {
     type Item = &'a mut Pane;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -145,6 +217,8 @@ pub(super) mod serialization {
         pub(super) bottom: Option<VSplitPart>,
         #[serde(skip_serializing_if = "Cwd::is_empty")]
         pub(super) cwd: Cwd,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        pub active: bool,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(super) shell_command: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -169,6 +243,7 @@ pub(super) mod serialization {
 
             Split::Pane(Pane {
                 cwd: map.cwd,
+                active: map.active,
                 shell_command: map.shell_command,
                 send_keys: map.send_keys,
             })
@@ -180,6 +255,7 @@ pub(super) mod serialization {
             match split {
                 Split::Pane(pane) => Self {
                     cwd: pane.cwd,
+                    active: pane.active,
                     shell_command: pane.shell_command,
                     send_keys: pane.send_keys,
                     ..Default::default()
@@ -195,6 +271,25 @@ pub(super) mod serialization {
                     ..Default::default()
                 },
             }
+        }
+    }
+
+    impl From<RootSplit> for SplitMap {
+        fn from(mut root: RootSplit) -> Self {
+            // Avoid rendering the `active` property for single root panes.
+            // While unneccessary, it also leads to ambiguity in the config file.
+            // The `active` property of a single root pane would be interpreted
+            // as the containing window's active state.
+            if let Some(single_pane) = root.single_pane() {
+                single_pane.active = false;
+            }
+            root.0.into()
+        }
+    }
+
+    impl From<SplitMap> for RootSplit {
+        fn from(map: SplitMap) -> Self {
+            Split::from(map).into_root()
         }
     }
 
