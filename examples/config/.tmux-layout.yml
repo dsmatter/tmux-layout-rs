@@ -1,6 +1,6 @@
+selected_session: sess1
 sessions:
   - name: sess1
-    active: true
     cwd: "~"
     windows:
       - name: win1
@@ -23,6 +23,6 @@ sessions:
     windows:
       - left:
           width: 20%
-          insert_keys: ["ls -al", "ENTER"]
+          send_keys: ["ls -al", "ENTER"]
         right:
           shell_command: "bash"

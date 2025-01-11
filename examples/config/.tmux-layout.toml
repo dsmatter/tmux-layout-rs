@@ -1,7 +1,8 @@
+selected_session = "sess1"
+
 [[sessions]]
 name = "sess1"
 cwd = "~"
-active = true
 
 [[sessions.windows]]
 name = "win1"
@@ -11,7 +12,7 @@ active = true
 left.top.cwd = "projects"
 left.bottom.cwd = "scratch"
 right.bottom.cwd = "projects/tmux-layout"
-right.bottom.insert_keys = ["g", "ENTER"]
+right.bottom.send_keys = ["g", "ENTER"]
 
 [[sessions.windows]]
 name = "win2"
@@ -24,5 +25,5 @@ left.width = "33%"
 name = "sess2"
 
 [[sessions.windows]]
-left = { insert_keys = ["ls -al", "ENTER"] }
+left = { send_keys = ["ls -al", "ENTER"] }
 right = { width = "120", shell_command = "bash" }

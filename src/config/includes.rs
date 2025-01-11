@@ -1,10 +1,10 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NoIncludes;
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FilePathIncludes(pub Vec<String>);
 
 pub trait ConfigIncludes: Serialize + DeserializeOwned + Default + sealed::Sealed {

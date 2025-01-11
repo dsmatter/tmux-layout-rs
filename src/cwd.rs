@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Cwd<'a> {
     path: Option<Cow<'a, Path>>,
 }
@@ -74,6 +74,18 @@ impl From<Option<String>> for Cwd<'static> {
             None => Self::default(),
             Some(s) => s.into(),
         }
+    }
+}
+
+impl<'a> From<&'a str> for Cwd<'a> {
+    fn from(s: &'a str) -> Self {
+        Self::new(Some(Cow::Borrowed(Path::new(s))))
+    }
+}
+
+impl<'a> PartialEq<&'a str> for Cwd<'_> {
+    fn eq(&self, other: &&'a str) -> bool {
+        self.path.as_deref() == Some(Path::new(other))
     }
 }
 
