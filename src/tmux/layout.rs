@@ -38,10 +38,10 @@ impl From<Layout> for config::Split {
         match split {
             Layout::Pane(_) => config::Split::default(),
             Layout::H(_, mut splits) => {
-                let last_split = match splits.pop() {
-                    None => return config::Split::default(),
-                    Some(split) => split,
+                let Some(last_split) = splits.pop() else {
+                    return config::Split::default();
                 };
+
                 let mut acc_width = last_split.width() as f32;
                 let mut acc_split = last_split.into();
 
@@ -65,10 +65,10 @@ impl From<Layout> for config::Split {
                 acc_split
             }
             Layout::V(_, mut splits) => {
-                let last_split = match splits.pop() {
-                    None => return config::Split::default(),
-                    Some(split) => split,
+                let Some(last_split) = splits.pop() else {
+                    return config::Split::default();
                 };
+
                 let mut acc_height = last_split.height() as f32;
                 let mut acc_split = last_split.into();
 
