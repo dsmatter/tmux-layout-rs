@@ -152,6 +152,7 @@ pub enum Error {
 
 mod parser {
     use crate::tmux::layout;
+    use nom::Parser;
     use shellwords::MismatchedQuotes;
     use std::borrow::Cow;
     use std::collections::{hash_map::Entry, HashMap};
@@ -233,11 +234,11 @@ mod parser {
         let mut next_word = || words.next().ok_or_else(|| Error::from("missing word"));
 
         let session_id_desc = next_word()?;
-        let session_id = all_consuming(session_id)(&session_id_desc)?.1;
+        let session_id = all_consuming(session_id).parse(&session_id_desc)?.1;
         let window_id_desc = next_word()?;
-        let window_id = all_consuming(window_id)(&window_id_desc)?.1;
+        let window_id = all_consuming(window_id).parse(&window_id_desc)?.1;
         let pane_id_desc = next_word()?;
-        let pane_id = all_consuming(pane_id)(&pane_id_desc)?.1;
+        let pane_id = all_consuming(pane_id).parse(&pane_id_desc)?.1;
         let session_name = next_word()?;
         let session_cwd = next_word()?;
         let window_index = WindowIndex(next_word()?.parse()?);
@@ -277,15 +278,15 @@ mod parser {
     type NomResult<'a, A> = IResult<I<'a>, A>;
 
     fn session_id(i: I) -> NomResult<SessionId> {
-        map(preceded(tag("$"), u32), SessionId)(i)
+        map(preceded(tag("$"), u32), SessionId).parse(i)
     }
 
     fn window_id(i: I) -> NomResult<WindowId> {
-        map(preceded(tag("@"), u32), WindowId)(i)
+        map(preceded(tag("@"), u32), WindowId).parse(i)
     }
 
     fn pane_id(i: I) -> NomResult<PaneId> {
-        map(preceded(tag("%"), u32), PaneId)(i)
+        map(preceded(tag("%"), u32), PaneId).parse(i)
     }
 
     #[derive(Debug)]

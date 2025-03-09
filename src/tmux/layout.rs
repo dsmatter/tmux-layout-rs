@@ -131,15 +131,15 @@ mod parser {
         character::complete::{digit1, u32},
         combinator::{all_consuming, map, value},
         multi::separated_list1,
-        sequence::{delimited, pair, preceded, terminated, tuple},
-        IResult,
+        sequence::{delimited, pair, preceded, terminated},
+        IResult, Parser,
     };
     use thiserror::Error;
 
     use super::*;
 
     pub(super) fn parse_layout(i: I) -> Result<Layout> {
-        all_consuming(layout)(i)
+        all_consuming(layout).parse(i)
     }
 
     #[derive(Debug, Error)]
@@ -158,15 +158,15 @@ mod parser {
     type Result<'a, A> = IResult<I<'a>, A>;
 
     fn layout(i: I) -> Result<Layout> {
-        preceded(checksum, split)(i)
+        preceded(checksum, split).parse(i)
     }
 
     fn split(i: I) -> Result<Layout> {
-        alt((pane_split, h_split, v_split))(i)
+        alt((pane_split, h_split, v_split)).parse(i)
     }
 
     fn pane_split(i: I) -> Result<Layout> {
-        map(terminated(pane_geom, pair(tag(","), digit1)), Layout::Pane)(i)
+        map(terminated(pane_geom, pair(tag(","), digit1)), Layout::Pane).parse(i)
     }
 
     fn h_split(i: I) -> Result<Layout> {
@@ -176,7 +176,8 @@ mod parser {
                 delimited(tag("{"), separated_list1(tag(","), split), tag("}")),
             ),
             |(pane, splits)| Layout::H(pane, splits),
-        )(i)
+        )
+        .parse(i)
     }
 
     fn v_split(i: I) -> Result<Layout> {
@@ -186,28 +187,31 @@ mod parser {
                 delimited(tag("["), separated_list1(tag(","), split), tag("]")),
             ),
             |(pane, splits)| Layout::V(pane, splits),
-        )(i)
+        )
+        .parse(i)
     }
 
     fn pane_geom(i: I) -> Result<PaneGeom> {
         map(
-            tuple((size, tag(","), u32, tag(","), u32)),
+            (size, tag(","), u32, tag(","), u32),
             |(size, _, x_offset, _, y_offset)| PaneGeom {
                 size,
                 x_offset,
                 y_offset,
             },
-        )(i)
+        )
+        .parse(i)
     }
 
     fn checksum(i: I) -> Result<()> {
-        value((), tuple((take_until(","), take(1usize))))(i)
+        value((), (take_until(","), take(1usize))).parse(i)
     }
 
     fn size(i: I) -> Result<Size> {
-        map(tuple((u32, tag("x"), u32)), |(width, _, height)| {
+        map((u32, tag("x"), u32), |(width, _, height)| {
             Size::new(width, height)
-        })(i)
+        })
+        .parse(i)
     }
 }
 
