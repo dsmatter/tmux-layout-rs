@@ -2,6 +2,14 @@
 name = "tmux-layout"
 version = "0.1.0"
 edition = "2018"
+license-file = "LICENSE"
+description = "A tool for managing tmux sessions with predefined layouts"
+homepage = "https://github.com/dsmatter/tmux-layout-rs"
+repository = "https://github.com/dsmatter/tmux-layout-rs"
+readme = "README.md"
+keywords = ["cli", "tmux", "layout", "management", "productivity"]
+categories = ["command-line-utilities"]
+exclude = [".github", ".gitignore"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
