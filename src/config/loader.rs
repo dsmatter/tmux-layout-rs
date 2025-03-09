@@ -75,7 +75,7 @@ pub fn load_partial_config_at(path: &Path) -> Result<PartialConfig, Error> {
 }
 
 pub fn find_default_config_file() -> Option<PathBuf> {
-    const BASE_BASENAME: &str = ".tmux-layout";
+    const BASENAME: &str = ".tmux-layout";
     const EXTS: [&str; 3] = ["yaml", "yml", "toml"];
 
     let current_dir = std::env::current_dir().ok()?;
@@ -83,7 +83,7 @@ pub fn find_default_config_file() -> Option<PathBuf> {
 
     for dir in &[current_dir, home_dir] {
         for ext in &EXTS {
-            let file_path = dir.join(format!("{}.{}", BASE_BASENAME, ext));
+            let file_path = dir.join(format!("{}.{}", BASENAME, ext));
             if file_path.exists() {
                 return Some(file_path);
             }
@@ -92,7 +92,6 @@ pub fn find_default_config_file() -> Option<PathBuf> {
 
     None
 }
-
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("failed to load config file at {path:?}: {error}")]
