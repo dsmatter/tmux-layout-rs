@@ -1,4 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use std::hint::black_box;
+
+use criterion::{criterion_group, criterion_main, Criterion};
 
 use tmux_layout::{config::Config, tmux::TmuxCommandBuilder};
 
@@ -12,7 +14,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
         b.iter(|| {
             TmuxCommandBuilder::new("tmux", std::iter::empty::<String>())
-                .new_sessions(&config.sessions)
+                .new_sessions(&config.sessions, None)
                 .into_command()
         })
     });

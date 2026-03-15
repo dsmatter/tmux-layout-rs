@@ -83,11 +83,11 @@ impl Split {
         }
     }
 
-    pub fn pane_iter(&self) -> Panes {
+    pub fn pane_iter(&self) -> Panes<'_> {
         Panes::new(self)
     }
 
-    pub fn pane_iter_mut(&mut self) -> PanesMut {
+    pub fn pane_iter_mut(&mut self) -> PanesMut<'_> {
         PanesMut::new(self)
     }
 }

@@ -1,6 +1,8 @@
+use std::str::FromStr;
+
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
-use crate::tmux::QueryScope;
+use crate::{exit_with_error, tmux::QueryScope};
 
 #[derive(Debug)]
 pub enum Subcommand<'a> {
@@ -35,6 +37,7 @@ impl Subcommand<'_> {
 pub struct CreateOpts<'a> {
     pub config_path: Option<&'a str>,
     pub session_select_mode: SessionSelectModeOption,
+    pub window_size_mode: WindowSizeModeOption,
     pub ignore_existing_sessions: bool,
     pub tmux_args: Vec<&'a str>,
 }
@@ -46,6 +49,11 @@ impl CreateOpts<'_> {
             session_select_mode: SessionSelectModeOption::from_arg(
                 matches
                     .get_one::<String>("session-select-mode")
+                    .map(|s| s.as_str()),
+            ),
+            window_size_mode: WindowSizeModeOption::from_arg(
+                matches
+                    .get_one::<String>("window-size-mode")
                     .map(|s| s.as_str()),
             ),
             ignore_existing_sessions: matches.get_flag("ignore-existing-sessions"),
@@ -85,6 +93,7 @@ impl ExportOpts<'_> {
 pub struct DumpCommandOps<'a> {
     pub config_path: Option<&'a str>,
     pub session_select_mode: SessionSelectModeOption,
+    pub window_size_mode: WindowSizeModeOption,
     pub ignore_existing_sessions: bool,
     pub tmux_args: Vec<&'a str>,
 }
@@ -96,6 +105,11 @@ impl DumpCommandOps<'_> {
             session_select_mode: SessionSelectModeOption::from_arg(
                 matches
                     .get_one::<String>("session-select-mode")
+                    .map(|s| s.as_str()),
+            ),
+            window_size_mode: WindowSizeModeOption::from_arg(
+                matches
+                    .get_one::<String>("window-size-mode")
                     .map(|s| s.as_str()),
             ),
             ignore_existing_sessions: matches.get_flag("ignore-existing-sessions"),
@@ -172,6 +186,52 @@ impl SessionSelectModeOption {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub enum WindowSizeModeOption {
+    #[default]
+    Auto,
+    Default,
+    TerminalSize,
+    Fixed {
+        width: u16,
+        height: u16,
+    },
+}
+
+impl WindowSizeModeOption {
+    fn from_arg(arg: Option<&str>) -> WindowSizeModeOption {
+        if let Some(arg) = arg {
+            WindowSizeModeOption::from_str(arg).unwrap_or_else(|_| {
+                exit_with_error(&format!(
+                    "Invalid window size mode: '{}'. Expected 'auto', 'default', 'terminal-size' or '${{width}}x{{height}}'.",
+                    arg
+                ))
+            })
+        } else {
+            WindowSizeModeOption::Auto
+        }
+    }
+}
+
+impl FromStr for WindowSizeModeOption {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "auto" => Ok(WindowSizeModeOption::Auto),
+            "default" => Ok(WindowSizeModeOption::Default),
+            "terminal" => Ok(WindowSizeModeOption::TerminalSize),
+            _ => {
+                // Try to parse ${width}x${height} format for fixed size
+                let (w_str, h_str) = s.split_once('x').ok_or(())?;
+                let width = w_str.parse::<u16>().map_err(|_| ())?;
+                let height = h_str.parse::<u16>().map_err(|_| ())?;
+                Ok(WindowSizeModeOption::Fixed { width, height })
+            }
+        }
+    }
+}
+
 pub fn app() -> Command {
     let config_arg = Arg::new("config")
         .help(
@@ -214,6 +274,21 @@ pub fn app() -> Command {
         .default_value("auto")
         .required(false);
 
+    let window_size_mode_arg = Arg::new("window-size-mode")
+        .help(
+            "Window size mode:\n\
+                - auto: use terminal size if not session is attached, default size otherwise\n\
+                - default: use tmux's default window size\n\
+                - terminal: use the current terminal size (if running from a TTY)\n\
+                - ${width}x${height}: use fixed window size (e.g. 200x50)",
+        )
+        .short('s')
+        .long("window-size-mode")
+        .num_args(1)
+        .value_name("SIZE")
+        .default_value("auto")
+        .required(false);
+
     let ignore_existing_sessions_arg = Arg::new("ignore-existing-sessions")
         .help("Don't create already existing tmux sessions")
         .short('i')
@@ -227,7 +302,7 @@ pub fn app() -> Command {
         .num_args(0..);
 
     Command::new("tmux-layout")
-        .version("0.1.0")
+        .version("0.2.0")
         .author("Daniel Strittmatter <github@smattr.de>")
         .about("Starts tmux sessions in pre-defined layouts")
         .subcommand(
@@ -235,6 +310,7 @@ pub fn app() -> Command {
                 .about("Create tmux layout from config file")
                 .arg(&config_arg)
                 .arg(&session_select_mode_arg)
+                .arg(&window_size_mode_arg)
                 .arg(&ignore_existing_sessions_arg)
                 .arg(&tmux_args),
         )
@@ -243,6 +319,7 @@ pub fn app() -> Command {
                 .about("Dump tmux command to stdout")
                 .arg(&config_arg)
                 .arg(&session_select_mode_arg)
+                .arg(&window_size_mode_arg)
                 .arg(&ignore_existing_sessions_arg)
                 .arg(&tmux_args),
         )

@@ -5,16 +5,17 @@ use std::error::Error;
 use std::io::{IsTerminal, Read};
 use std::path::Path;
 use std::process::Command;
+use terminal_size::{terminal_size, Height, Width};
 use tmux_layout::cli::{
     self, ConfigFormat, CreateOpts, DumpCommandOps, DumpConfigOps, ExportOpts,
-    SessionSelectModeOption,
+    SessionSelectModeOption, WindowSizeModeOption,
 };
 use tmux_layout::config::loader::find_default_config_file;
 use tmux_layout::config::{self, Config, PartialConfig, Session};
 use tmux_layout::cwd::Cwd;
 use tmux_layout::tmux::import::TmuxState;
 use tmux_layout::tmux::{import, QueryScope};
-use tmux_layout::tmux::{SessionSelectMode, TmuxCommandBuilder};
+use tmux_layout::tmux::{SessionSelectMode, TmuxCommandBuilder, WindowSize};
 use tmux_layout::{exit_with_error, show_info, show_warning};
 
 fn main() {
@@ -34,7 +35,8 @@ fn main() {
 fn run_create(opts: CreateOpts) {
     let env = EnvOpts::from_env();
 
-    let session_select_mode = get_session_select_mode(opts.session_select_mode, &env, true);
+    let session_select_mode = extract_session_select_mode(opts.session_select_mode, &env, true);
+    let window_size = extract_window_size(opts.window_size_mode, &env);
     let mut config = load_config(opts.config_path);
 
     if opts.ignore_existing_sessions {
@@ -48,7 +50,7 @@ fn run_create(opts: CreateOpts) {
 
     let command = TmuxCommandBuilder::new(&env.tmux_path, opts.tmux_args)
         .new_windows(&config.windows, &Cwd::default())
-        .new_sessions(&config.sessions)
+        .new_sessions(&config.sessions, window_size)
         .select_session(config.selected_session.as_deref(), session_select_mode)
         .into_command();
 
@@ -82,7 +84,8 @@ fn run_export(opts: ExportOpts) {
 
 fn run_dump_command(opts: DumpCommandOps) {
     let env = EnvOpts::from_env();
-    let session_select_mode = get_session_select_mode(opts.session_select_mode, &env, false);
+    let session_select_mode = extract_session_select_mode(opts.session_select_mode, &env, false);
+    let window_size = extract_window_size(opts.window_size_mode, &env);
     let mut config = load_config(opts.config_path);
 
     if opts.ignore_existing_sessions {
@@ -95,7 +98,7 @@ fn run_dump_command(opts: DumpCommandOps) {
 
     let command = TmuxCommandBuilder::new(&env.tmux_path, opts.tmux_args)
         .new_windows(&config.windows, &Cwd::default())
-        .new_sessions(&config.sessions)
+        .new_sessions(&config.sessions, window_size)
         .select_session(config.selected_session.as_deref(), session_select_mode)
         .into_command();
 
@@ -200,7 +203,7 @@ fn extract_active_window(tmux_state: TmuxState) -> Option<import::Window> {
         .find(|w| w.active)
 }
 
-fn get_session_select_mode(
+fn extract_session_select_mode(
     opt: SessionSelectModeOption,
     env: &EnvOpts,
     allow_overwrite: bool,
@@ -229,6 +232,30 @@ fn get_session_select_mode(
                 SessionSelectMode::Attach
             } else {
                 SessionSelectMode::Detached
+            }
+        }
+    }
+}
+
+fn extract_window_size(opt: WindowSizeModeOption, env: &EnvOpts) -> Option<WindowSize> {
+    fn from_terminal_size() -> Option<WindowSize> {
+        if let Some((Width(width), Height(height))) = terminal_size() {
+            Some(WindowSize { width, height })
+        } else {
+            show_warning("Failed to get terminal size, falling back to default window size");
+            None
+        }
+    }
+
+    match opt {
+        WindowSizeModeOption::Default => None,
+        WindowSizeModeOption::Fixed { width, height } => Some(WindowSize { width, height }),
+        WindowSizeModeOption::TerminalSize => from_terminal_size(),
+        WindowSizeModeOption::Auto => {
+            if has_tmux_clients(&env.tmux_path) {
+                None
+            } else {
+                from_terminal_size()
             }
         }
     }

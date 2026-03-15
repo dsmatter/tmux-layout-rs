@@ -34,7 +34,7 @@ impl Cwd<'_> {
         self.path.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn shallow_clone(&self) -> Cwd {
+    pub fn shallow_clone(&self) -> Cwd<'_> {
         Cwd {
             path: self.path.as_ref().map(|path| Cow::Borrowed(path.as_ref())),
         }

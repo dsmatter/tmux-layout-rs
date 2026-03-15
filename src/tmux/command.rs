@@ -19,6 +19,12 @@ pub enum SessionSelectMode {
     Detached,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct WindowSize {
+    pub width: u16,
+    pub height: u16,
+}
+
 #[derive(Debug)]
 pub struct TmuxCommandBuilder {
     command: Command,
@@ -74,13 +80,17 @@ impl TmuxCommandBuilder {
         self
     }
 
-    pub fn new_sessions<'a>(self, sessions: impl IntoIterator<Item = &'a Session>) -> Self {
+    pub fn new_sessions<'a>(
+        self,
+        sessions: impl IntoIterator<Item = &'a Session>,
+        window_size: Option<WindowSize>,
+    ) -> Self {
         sessions
             .into_iter()
-            .fold(self, |b, session| b.new_session(session))
+            .fold(self, |b, session| b.new_session(session, window_size))
     }
 
-    pub fn new_session(mut self, session: &Session) -> Self {
+    pub fn new_session(mut self, session: &Session, window_size: Option<WindowSize>) -> Self {
         if session.windows.is_empty() {
             return self;
         }
@@ -91,6 +101,13 @@ impl TmuxCommandBuilder {
             .push_flag_arg("-s", Some(&session.name))
             .push_cwd_arg(&session.cwd)
             .push("-d");
+
+        if let Some(size) = window_size {
+            self.push_new_command("set-option")
+                .push("-s")
+                .push("default-size")
+                .push(format!("{}x{}", size.width, size.height));
+        }
 
         self.create_initial_window(&session.windows[0], &session.cwd)
             .new_windows(&session.windows[1..], &session.cwd)
