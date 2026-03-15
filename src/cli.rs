@@ -302,7 +302,7 @@ pub fn app() -> Command {
         .num_args(0..);
 
     Command::new("tmux-layout")
-        .version("0.1.0")
+        .version("0.2.0")
         .author("Daniel Strittmatter <github@smattr.de>")
         .about("Starts tmux sessions in pre-defined layouts")
         .subcommand(
