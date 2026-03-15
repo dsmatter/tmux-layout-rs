@@ -14,7 +14,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
         b.iter(|| {
             TmuxCommandBuilder::new("tmux", std::iter::empty::<String>())
-                .new_sessions(&config.sessions)
+                .new_sessions(&config.sessions, None)
                 .into_command()
         })
     });
