@@ -103,8 +103,10 @@ impl TmuxCommandBuilder {
             .push("-d");
 
         if let Some(size) = window_size {
+            let target = self.session_target();
             self.push_new_command("set-option")
                 .push("-s")
+                .push_target_arg(target)
                 .push("default-size")
                 .push(format!("{}x{}", size.width, size.height));
         }
